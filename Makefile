@@ -3,6 +3,12 @@ help: ## Display all make commands with comments.
 
 setup: install_errcheck ## Run it in local after taking the clone.
 
+test: ## Run tests
+	go test -v -race $(go list ./... | grep -v vendor)
+
+format:
+	./build/format.sh
+
 pre_commit: ## Run it before committing changes.
 	go mod tidy
 	go mod vendor
@@ -12,3 +18,5 @@ pre_commit: ## Run it before committing changes.
 
 install_errcheck:
 	go get github.com/kisielk/errcheck
+
+##---------------------------------------------

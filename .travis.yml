@@ -3,3 +3,6 @@ sudo: false
 go:
     - "1.14"
     - tip
+script:
+    - make format
+    - make test
