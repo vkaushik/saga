@@ -9,10 +9,6 @@ format:
 	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
 	"./build/format.sh"
 
-pre_commit: ## Run it before committing changes.
-	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
-	"go mod tidy && go mod vendor && go vet ./... && go fmt ./... && errcheck ./..."
-
 clean: ## Clean the docker residues.
 	docker-compose -f ./build/docker-compose.yml down -v --rmi all --remove-orphans
 
@@ -24,3 +20,23 @@ rebuild_docker_image:
 	docker-compose -f ./build/docker-compose.yml build
 
 ##---------------------------------------------
+## Git Hooks
+
+pre_commit: ## Run it before committing changes.
+	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
+	"go mod tidy && go mod vendor && go vet ./... && go fmt ./... && errcheck ./..."
+
+pre_push: test ## Run it before pushing changes.
+
+install_git_hooks: ## Install pre-commit and pre-push git hooks
+	if [ -f ./.git/hooks/pre-commit ]; then mv ./.git/hooks/pre-commit ./git/hooks/old-pre-commit; fi
+	if [ -f ./.git/hooks/pre-push]; then mv ./.git/hooks/pre-push ./git/hooks/old-pre-push; fi
+	ln -s ./build/git-hooks/pre-commit ./.git/hooks/pre-commit
+	ln -s ./build/git-hooks/pre-push ./.git/hooks/pre-push
+	chmod +x ./.git/hooks/pre-commit ./.git/hooks/pre-push
+
+uninstall_git_hooks: ## Uninstall pre-commit and pre-push git hooks
+	rm ./.git/hooks/pre-commit
+	rm ./.git/hooks/pre-push
+	if [ -f ./.git/hooks/old-pre-commit ]; then mv ./.git/hooks/old-pre-commit ./git/hooks/old-pre-commit; fi
+	if [ -f ./.git/hooks/old-pre-push ]; then mv ./.git/hooks/old-pre-push ./git/hooks/old-pre-push; fi
