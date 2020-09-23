@@ -1,8 +1,11 @@
-language: go
-sudo: false
-go:
-    - "1.14"
-    - tip
-script:
-    - make format
-    - make test
+matrix:
+    include:
+        - language: go
+            sudo: required
+            services:
+                - docker
+            script:
+                - export GO111MODULE=on
+                - make build_base_image
+                - make format
+                - make test
