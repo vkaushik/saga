@@ -1,8 +1,9 @@
 language: go
 sudo: false
-go:
-    - "1.14"
-    - tip
+services:
+    - docker
+before_install:
+    - make build_base_image
 script:
     - make format
     - make test

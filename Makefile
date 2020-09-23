@@ -19,6 +19,9 @@ test_mocks: ## Generate mocks for tests.
 rebuild_docker_image:
 	docker-compose -f ./build/docker-compose.yml build
 
+build_base_image:
+	docker-compose -f ./build/docker-compose.yml build go_saga
+
 ##---------------------------------------------
 ## Git Hooks
 
