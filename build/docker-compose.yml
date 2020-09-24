@@ -1,0 +1,14 @@
+version: "3.3"
+
+services:
+    go_saga:
+        build: .
+        image: go_saga:base
+    
+    gontainer:
+        image: go_saga:base
+        environment:
+            - GO111MODULE=on
+        working_dir: /go/saga
+        volumes: 
+            - ../:/go/saga
