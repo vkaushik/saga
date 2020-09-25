@@ -12,6 +12,9 @@ func newTx() *Tx {
 // The SubTxID and the corresponding Action & Compensate definitions must already be registered with Saga.
 // The arguments to ExecSubTx are passed to the Sub-Transaction Action.
 func (tx *Tx) ExecSubTx(ID SubTxID, args ...interface{}) error {
+	// Get Action for SubTxID
+	// Call it with Params
+
 	return nil
 }
 

@@ -1,22 +1,29 @@
-package saga
+package saga_test
 
 import (
 	"context"
 	"log"
 	"testing"
 
+	"github.com/vkaushik/saga"
 	"github.com/vkaushik/saga/storage"
 )
 
 func TestSaga(t *testing.T) {
+	// Create storage for persistence
 	st := storage.NewKafka()
-	s := New(st)
+
+	// Create Saga
+	s := saga.New(st)
 	defer func() {
 		if err := s.Close(); err != nil {
 			log.Println("Failed to close saga.")
 		}
 	}()
 
+	// Add SubTx Definitions to Saga. Saga uses these definitions for Rollback.
+	// The action and compensate could be some member functions as well and must have same signature.
+	// Also the arguments must be serializable/marshalable and first arg must be context.
 	if err := s.AddSubTx("debit", debit, debitCompensate); err != nil {
 		log.Println("Failed to add Debit SubTx to Saga")
 	}
@@ -25,6 +32,7 @@ func TestSaga(t *testing.T) {
 		log.Println("Failed to add Credit SubTx to Saga")
 	}
 
+	// Create New Transaction
 	tx := s.NewTx(context.Background(), "transfer-100")
 	defer func() {
 		if err := tx.End(); err != nil {
@@ -32,6 +40,9 @@ func TestSaga(t *testing.T) {
 		}
 	}()
 
+	// Execute Sub Transactions. Invoke transaction rollback if Sub-Transaction execution fails.
+	// The Rollback call is made explicit because there may be some cases when Rollback is not required or
+	// possibly somehing needs to be done before or after rollback.
 	if err := tx.ExecSubTx("debit", 100, "sam"); err != nil {
 		tryRollback(tx, err)
 	}
@@ -41,7 +52,7 @@ func TestSaga(t *testing.T) {
 }
 
 // tryRollback to try Rollback infinitely until success
-func tryRollback(tx *Tx, err error) {
+func tryRollback(tx *saga.Tx, err error) {
 	log.Println("Initiating Rollback due to: ", err.Error())
 	rollbackErr := tx.Rollback()
 
