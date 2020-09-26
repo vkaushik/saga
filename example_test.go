@@ -3,13 +3,12 @@ package saga_test
 import (
 	"context"
 	"log"
-	"testing"
 
 	"github.com/vkaushik/saga"
 	"github.com/vkaushik/saga/storage"
 )
 
-func TestSaga(t *testing.T) {
+func ExampleSaga() {
 	// Create storage for persistence
 	st := storage.NewKafka()
 
