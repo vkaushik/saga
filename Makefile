@@ -34,8 +34,8 @@ pre_push: test ## Run it before pushing changes.
 install_git_hooks: ## Install pre-commit and pre-push git hooks
 	if [ -f ./.git/hooks/pre-commit ]; then mv ./.git/hooks/pre-commit ./git/hooks/old-pre-commit; fi
 	if [ -f ./.git/hooks/pre-push]; then mv ./.git/hooks/pre-push ./git/hooks/old-pre-push; fi
-	ln -s ./build/git-hooks/pre-commit ./.git/hooks/pre-commit
-	ln -s ./build/git-hooks/pre-push ./.git/hooks/pre-push
+	ln -s ../../build/git-hooks/pre-commit ./.git/hooks/pre-commit
+	ln -s ../../build/git-hooks/pre-push ./.git/hooks/pre-push
 	chmod +x ./.git/hooks/pre-commit ./.git/hooks/pre-push
 
 uninstall_git_hooks: ## Uninstall pre-commit and pre-push git hooks
