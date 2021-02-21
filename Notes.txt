@@ -1,0 +1,8 @@
+Initialize saga -> configs, kafka etc.
+Add SubTx to saga with compensates
+
+Pass the Saga to Transaction and create a new Transaction with start Transaction
+
+execute SubTxs
+
+end transaction 
