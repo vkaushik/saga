@@ -19,10 +19,6 @@ test_mocks: ## Generate mocks for tests.
 build_docker_images: ## Rebuild base image after any changes to Dockerfile.
 	docker-compose -f ./build/docker-compose.yml build
 
-get_running_container:
-	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
-	"tail -f /dev/null"
-
 ##---------------------------------------------
 ## Git Hooks
 
@@ -48,6 +44,10 @@ uninstall_git_hooks: ## Uninstall pre-commit and pre-push git hooks
 ##---------------------------------------------
 ## Others
 
-dependency_graph:
+dependency_graph: ## Create dependency_graph.png.
 	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
 	"godepgraph github.com/vkaushik/saga | dot -Tpng -o dependency_graph.png"
+
+get_running_gontainer: ## Spin-up Gontainer to get into it. (container env used to run go commands).
+	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
+	"tail -f /dev/null"
