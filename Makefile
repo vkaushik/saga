@@ -16,8 +16,8 @@ test_mocks: ## Generate mocks for tests.
 	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
 	"./build/mocks/generate_mocks.sh"
 
-rebuild_base_image: ## Rebuild base image after any changes to Dockerfile.
-	docker-compose -f ./build/docker-compose.yml build go_saga
+build_docker_images: ## Rebuild base image after any changes to Dockerfile.
+	docker-compose -f ./build/docker-compose.yml build
 
 get_running_container:
 	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \

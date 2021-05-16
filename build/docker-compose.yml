@@ -12,3 +12,4 @@ services:
         working_dir: /go/saga
         volumes: 
             - ../:/go/saga
+            - ../.gopath/pkg:/go/pkg

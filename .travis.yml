@@ -3,7 +3,7 @@ sudo: false
 services:
     - docker
 before_install:
-    - make build_base_image
+    - make build_docker_images
 script:
     - make format
     - make test
