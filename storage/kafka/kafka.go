@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"github.com/vkaushik/saga/trace"
 	"sync"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/juju/errors"
 
 	"github.com/Shopify/sarama"
-	"github.com/vkaushik/saga"
 )
 
 // BrokerAddresses is the list of broker addresses e.g. ["192.168.1.19:9092", "192.168.1.21:9092"]
@@ -38,12 +38,16 @@ type Kafka struct {
 	topic    Topic
 	producer sarama.SyncProducer
 	consumer sarama.Consumer
-	logger   saga.Logger
+	logger   trace.Logger
 
 	pc      PartitionCount
 	rc      ReplicaCount
 	dur     ConsumerWaitDuration
 	maxMsgs MaxLogMessages
+}
+
+func (k *Kafka) TxIDAlreadyExists(s string) (bool, error) {
+	panic("implement me")
 }
 
 // Topic provides kafka-topic management functions.

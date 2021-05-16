@@ -5,74 +5,112 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
+	subtx "github.com/vkaushik/saga/subtx"
 )
 
-// MockStorage is a mock of Storage interface.
-type MockStorage struct {
+// MockSubTxDefinitions is a mock of SubTxDefinitions interface.
+type MockSubTxDefinitions struct {
 	ctrl     *gomock.Controller
-	recorder *MockStorageMockRecorder
+	recorder *MockSubTxDefinitionsMockRecorder
 }
 
-// MockStorageMockRecorder is the mock recorder for MockStorage.
-type MockStorageMockRecorder struct {
-	mock *MockStorage
+// MockSubTxDefinitionsMockRecorder is the mock recorder for MockSubTxDefinitions.
+type MockSubTxDefinitionsMockRecorder struct {
+	mock *MockSubTxDefinitions
 }
 
-// NewMockStorage creates a new mock instance.
-func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
-	mock := &MockStorage{ctrl: ctrl}
-	mock.recorder = &MockStorageMockRecorder{mock}
+// NewMockSubTxDefinitions creates a new mock instance.
+func NewMockSubTxDefinitions(ctrl *gomock.Controller) *MockSubTxDefinitions {
+	mock := &MockSubTxDefinitions{ctrl: ctrl}
+	mock.recorder = &MockSubTxDefinitionsMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
+func (m *MockSubTxDefinitions) EXPECT() *MockSubTxDefinitionsMockRecorder {
 	return m.recorder
 }
 
-// MockAction is a mock of Action interface.
-type MockAction struct {
+// Add mocks base method.
+func (m *MockSubTxDefinitions) Add(subTxID string, action, compensate interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Add", subTxID, action, compensate)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Add indicates an expected call of Add.
+func (mr *MockSubTxDefinitionsMockRecorder) Add(subTxID, action, compensate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockSubTxDefinitions)(nil).Add), subTxID, action, compensate)
+}
+
+// Get mocks base method.
+func (m *MockSubTxDefinitions) Get(subTxID string) (subtx.Definition, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", subTxID)
+	ret0, _ := ret[0].(subtx.Definition)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockSubTxDefinitionsMockRecorder) Get(subTxID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockSubTxDefinitions)(nil).Get), subTxID)
+}
+
+// MockParamRegister is a mock of ParamRegister interface.
+type MockParamRegister struct {
 	ctrl     *gomock.Controller
-	recorder *MockActionMockRecorder
+	recorder *MockParamRegisterMockRecorder
 }
 
-// MockActionMockRecorder is the mock recorder for MockAction.
-type MockActionMockRecorder struct {
-	mock *MockAction
+// MockParamRegisterMockRecorder is the mock recorder for MockParamRegister.
+type MockParamRegisterMockRecorder struct {
+	mock *MockParamRegister
 }
 
-// NewMockAction creates a new mock instance.
-func NewMockAction(ctrl *gomock.Controller) *MockAction {
-	mock := &MockAction{ctrl: ctrl}
-	mock.recorder = &MockActionMockRecorder{mock}
+// NewMockParamRegister creates a new mock instance.
+func NewMockParamRegister(ctrl *gomock.Controller) *MockParamRegister {
+	mock := &MockParamRegister{ctrl: ctrl}
+	mock.recorder = &MockParamRegisterMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockAction) EXPECT() *MockActionMockRecorder {
+func (m *MockParamRegister) EXPECT() *MockParamRegisterMockRecorder {
 	return m.recorder
 }
 
-// MockCompensate is a mock of Compensate interface.
-type MockCompensate struct {
-	ctrl     *gomock.Controller
-	recorder *MockCompensateMockRecorder
+// Add mocks base method.
+func (m *MockParamRegister) Add(funcObj interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Add", funcObj)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// MockCompensateMockRecorder is the mock recorder for MockCompensate.
-type MockCompensateMockRecorder struct {
-	mock *MockCompensate
+// Add indicates an expected call of Add.
+func (mr *MockParamRegisterMockRecorder) Add(funcObj interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockParamRegister)(nil).Add), funcObj)
 }
 
-// NewMockCompensate creates a new mock instance.
-func NewMockCompensate(ctrl *gomock.Controller) *MockCompensate {
-	mock := &MockCompensate{ctrl: ctrl}
-	mock.recorder = &MockCompensateMockRecorder{mock}
-	return mock
+// GetRegisteredType mocks base method.
+func (m *MockParamRegister) GetRegisteredType(t reflect.Type) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRegisteredType", t)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockCompensate) EXPECT() *MockCompensateMockRecorder {
-	return m.recorder
+// GetRegisteredType indicates an expected call of GetRegisteredType.
+func (mr *MockParamRegisterMockRecorder) GetRegisteredType(t interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRegisteredType", reflect.TypeOf((*MockParamRegister)(nil).GetRegisteredType), t)
 }

@@ -3,11 +3,12 @@ package tx
 import (
 	"context"
 	"github.com/vkaushik/saga/marshal"
+	"github.com/vkaushik/saga/subtx"
+	"github.com/vkaushik/saga/trace"
 	"reflect"
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/vkaushik/saga"
 	"github.com/vkaushik/saga/log"
 )
 
@@ -17,12 +18,12 @@ type Tx struct {
 	txID    string // ID is the unique identifier for each transaction.
 	saga    Saga
 	storage Storage
-	log     saga.Logger
+	log     trace.Logger
 }
 
 // Saga is the dependency for Transaction that keeps Sub-Transaction definitions.
 type Saga interface {
-	GetSubTxDef(subTxID string) (SubTxDefinition, error)
+	GetSubTxDef(subTxID string) (subtx.Definition, error)
 	MarshallArgs(args []interface{}) ([]log.ArgData, error)
 }
 
@@ -38,27 +39,21 @@ type ReadyTx interface {
 	ExecSubTx(subTxID string, args ...interface{}) error
 	ExecSubTxAndGetResult(subTxID string, args ...interface{}) ([]reflect.Value, error)
 	End() error
-	SetLogger(l saga.Logger)
+	SetLogger(l trace.Logger)
 	SetContext(ctx context.Context)
 	RollbackWithInfiniteTries()
 	Rollback(tryCount int) error
 	IsTxIDAlreadyInUse() (bool, error)
 }
 
-// SubTxDefinition contains the Sub Tx Definition i.e. action and compensate function definitions
-type SubTxDefinition interface {
-	GetAction() reflect.Value
-	GetCompensate() reflect.Value
-}
-
 // New returns an instance of type ReadyTx
 func New(ctx context.Context, sg Saga, st Storage, txID string) ReadyTx {
 
-	return NewWithLogger(ctx, sg, st, txID, saga.NewDummyLogger())
+	return NewWithLogger(ctx, sg, st, txID, trace.NewDummyLogger())
 }
 
 // NewWithLogger returns an instance of type ReadyTx with given logger
-func NewWithLogger(ctx context.Context, sg Saga, st Storage, txID string, logger saga.Logger) ReadyTx {
+func NewWithLogger(ctx context.Context, sg Saga, st Storage, txID string, logger trace.Logger) ReadyTx {
 
 	return &Tx{ctx: ctx, saga: sg, storage: st, txID: txID, log: logger}
 }
@@ -76,7 +71,7 @@ func (tx *Tx) Start() error {
 	} else if txIDAlreadyExists {
 		tx.log.Info("TxID is already in use, calling rollback on this TxID: %s to avoid any inconsistencies", tx.txID)
 		if err = tx.Rollback(1); err != nil {
-			return errors.Annotatef(err, "could not rollback TxID: ", string(tx.txID))
+			return errors.Annotatef(err, "could not rollback TxID: %s", tx.txID)
 		}
 	}
 
@@ -86,7 +81,7 @@ func (tx *Tx) Start() error {
 	}
 
 	if err = tx.storage.AppendLog(string(tx.txID), logData); err != nil {
-		return errors.Annotatef(err, "could not append logs to storage for TxID: ", tx.txID)
+		return errors.Annotatef(err, "could not append logs to storage for TxID: %s", tx.txID)
 	}
 
 	return nil
@@ -112,7 +107,7 @@ func (tx *Tx) ExecSubTxAndGetResult(subTxID string, args ...interface{}) ([]refl
 	// validate SubTxID and get the definition from saga
 	subTxDef, err := tx.saga.GetSubTxDef(subTxID)
 	if err != nil {
-		return res, errors.Annotatef(err, "could not get SubTx definition for subTxID: ", subTxID)
+		return res, errors.Annotatef(err, "could not get SubTx definition for subTxID: %s", subTxID)
 	}
 
 	// log the starting of subTx
@@ -203,7 +198,7 @@ func (tx *Tx) Rollback(tryCount int) error {
 }
 
 // SetLogger to change the Transaction logger.
-func (tx *Tx) SetLogger(l saga.Logger) {
+func (tx *Tx) SetLogger(l trace.Logger) {
 	tx.log = l
 }
 

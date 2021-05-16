@@ -5,16 +5,17 @@ import (
 	"github.com/vkaushik/saga/log"
 	"github.com/vkaushik/saga/marshal"
 	"github.com/vkaushik/saga/subtx"
+	"github.com/vkaushik/saga/trace"
 	"reflect"
 )
 
 // New creates and returns a new Saga instance
 func New() *Saga {
-	return NewWithLogger(NewDummyLogger())
+	return NewWithLogger(trace.NewDummyLogger())
 }
 
 // NewWithLogger creates and returns a new Saga instance with given Logger
-func NewWithLogger(l Logger) *Saga {
+func NewWithLogger(l trace.Logger) *Saga {
 	return &Saga{
 		log:      l,
 		subTxDef: subtx.NewSubTxDefinitions(),
@@ -24,7 +25,7 @@ func NewWithLogger(l Logger) *Saga {
 
 // Saga helps SubTransaction execution and rollback
 type Saga struct {
-	log      Logger
+	log      trace.Logger
 	subTxDef SubTxDefinitions
 	params   ParamRegister
 }
@@ -46,11 +47,11 @@ type ParamRegister interface {
 // or compensate if Tx is being rollback.
 func (s *Saga) AddSubTx(ID string, action interface{}, compensate interface{}) error {
 	if err := s.params.Add(action); err != nil {
-		return errors.Annotatef(err, "could not parse action parameters for SubTxID: ", ID)
+		return errors.Annotatef(err, "could not parse action parameters for SubTxID: %s", ID)
 	}
 
 	if err := s.params.Add(compensate); err != nil {
-		return errors.Annotatef(err, "could not parse compensate parameters for SubTxID: ", ID)
+		return errors.Annotatef(err, "could not parse compensate parameters for SubTxID: %s", ID)
 	}
 
 	if err := s.subTxDef.Add(string(ID), action, compensate); err != nil {
