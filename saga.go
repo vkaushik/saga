@@ -1,47 +1,90 @@
 package saga
 
 import (
-	"context"
+	"github.com/juju/errors"
+	"github.com/vkaushik/saga/log"
+	"github.com/vkaushik/saga/marshal"
+	"github.com/vkaushik/saga/subtx"
+	"reflect"
 )
 
-// New to create Saga Instance.
-func New(s Storage) *Saga {
-	return &Saga{}
+// New creates and returns a new Saga instance
+func New() *Saga {
+	return NewWithLogger(NewDummyLogger())
 }
 
-// Saga to co-ordinate and control transaction.
+// NewWithLogger creates and returns a new Saga instance with given Logger
+func NewWithLogger(l Logger) *Saga {
+	return &Saga{
+		log:      l,
+		subTxDef: subtx.NewSubTxDefinitions(),
+		params:   subtx.NewParamTypeRegister(),
+	}
+}
+
+// Saga helps SubTransaction execution and rollback
 type Saga struct {
+	log      Logger
+	subTxDef SubTxDefinitions
+	params   ParamRegister
 }
 
-// Storage to provide persistence for Saga.
-type Storage interface {
+// SubTxDefinitions contains methods to add sub-transaction definitions
+type SubTxDefinitions interface {
+	Add(subTxID string, action interface{}, compensate interface{}) error
+	Get(subTxID string) (subtx.Definition, error)
 }
 
-// SubTxID is an unique identifier for each SubTx.
-type SubTxID string
+// ParamRegister contains methods to add sub-transaction parameters metadata
+type ParamRegister interface {
+	Add(funcObj interface{}) error
+	GetRegisteredType(t reflect.Type) (typ string, err error)
+}
 
-// Action to execute the steps/tasks for a SubTx.
-type Action interface{}
+// AddSubTx registers the action and compensate methods for a SubTx that'll be identified with the SubTxID.
+// While Transaction execution, the SubTxID is used to identify the SubTx and execute it's action in success flow
+// or compensate if Tx is being rollback.
+func (s *Saga) AddSubTx(ID string, action interface{}, compensate interface{}) error {
+	if err := s.params.Add(action); err != nil {
+		return errors.Annotatef(err, "could not parse action parameters for SubTxID: ", ID)
+	}
 
-// Compensate to rollback the SubTx to help system bring back to consistent state.
-// Compensate has to be Idempotent and can be called more than once while rolling-back the Tx.
-type Compensate interface{}
+	if err := s.params.Add(compensate); err != nil {
+		return errors.Annotatef(err, "could not parse compensate parameters for SubTxID: ", ID)
+	}
 
-// AddSubTx to add Action and Compensate definitions for given SubTxID.
-// Both Action and Compensate must have same signature.
-func (s *Saga) AddSubTx(id SubTxID, a Action, c Compensate) error {
+	if err := s.subTxDef.Add(string(ID), action, compensate); err != nil {
+		return errors.Annotate(err, "could not add sub-transaction definitions")
+	}
+
 	return nil
 }
 
-// TxID is an unique identifier for the Transaction.
-type TxID string
-
-// NewTx to create a new Transaction
-func (s *Saga) NewTx(c context.Context, txID TxID) *Tx {
-	return newTx()
+func (s *Saga) GetSubTxDef(subTxID string) (subtx.Definition, error) {
+	return s.subTxDef.Get(subTxID)
 }
 
-// Close to perform cleanup tasks and close connections i.e. kafka-client.
-func (s *Saga) Close() error {
-	return nil
+func (s *Saga) MarshallArgs(args []interface{}) ([]log.ArgData, error) {
+	res := make([]log.ArgData, 0, len(args))
+
+	for _, arg := range args {
+		t, err := s.params.GetRegisteredType(reflect.ValueOf(arg).Type())
+		if err != nil {
+			return res, errors.Annotate(err, "could not find argument type registered in saga")
+		}
+
+		m, err := marshal.Marshal(arg)
+		if err != nil {
+			return res, errors.Annotate(err, "could not marshal arg")
+		}
+
+		ad := log.ArgData{
+			Type:  t,
+			Value: m,
+		}
+
+		res = append(res, ad)
+	}
+
+	return res, nil
 }
