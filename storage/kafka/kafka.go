@@ -47,7 +47,7 @@ type Kafka struct {
 }
 
 func (k *Kafka) TxIDAlreadyExists(s string) (bool, error) {
-	panic("implement me")
+	return k.topic.IsTopicAlreadyCreated(s)
 }
 
 // Topic provides kafka-topic management functions.

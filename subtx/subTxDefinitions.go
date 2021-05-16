@@ -65,7 +65,7 @@ func validateAndGetFuncValue(obj interface{}) (reflect.Value, error) {
 		return reflect.Value{}, errors.Errorf("first argument must be of type context.Context")
 	}
 	if isNotFirstReturnValueOfTypeError(funcValue) {
-		return reflect.Value{}, errors.Errorf("must have the first return type of type error")
+		return reflect.Value{}, errors.Errorf("first return type must be of type error")
 	}
 
 	return funcValue, nil
@@ -76,9 +76,9 @@ func isNotAFunction(v reflect.Value) bool {
 }
 
 func isNotFirstArgumentAContext(v reflect.Value) bool {
-	return v.Type().NumIn() < 1 || v.Type().In(0) != reflect.TypeOf((context.Context)(nil))
+	return v.Type().NumIn() < 1 || !v.Type().In(0).Implements(reflect.TypeOf((*context.Context)(nil)).Elem())
 }
 
 func isNotFirstReturnValueOfTypeError(v reflect.Value) bool {
-	return v.Type().NumOut() == 0 || v.Type().Out(0) != reflect.TypeOf(errors.New("error"))
+	return v.Type().NumOut() == 0 || !v.Type().Out(0).Implements(reflect.TypeOf((*error)(nil)).Elem())
 }

@@ -48,16 +48,25 @@ func (pr *ParamTypeRegister) addInputParams(funcType reflect.Type) {
 }
 
 func (pr *ParamTypeRegister) addOutputParams(funcType reflect.Type) {
-	for i := 0; i < funcType.NumIn(); i++ {
+	for i := 0; i < funcType.NumOut(); i++ {
 		pr.addParam(funcType.Out(i))
 	}
 }
 
 func (pr *ParamTypeRegister) addParam(paramType reflect.Type) {
-	// TODO: Check if taking value out of pointer got any side-effects on abort
-	if paramType.Kind() == reflect.Ptr {
-		paramType = paramType.Elem()
-	}
-	paramName := paramType.PkgPath() + "/" + paramType.Name()
+	paramName := getTypeName(paramType)
 	pr.nameToType[paramName] = paramType
+	pr.typeToName[paramType] = paramName
+}
+
+func getTypeName(typ reflect.Type) string {
+	// TODO: Check if taking value out of pointer got any side-effects on abort
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	if p := typ.PkgPath(); p != "" {
+		return p + "/" + typ.Name()
+	}
+	return typ.Name()
 }

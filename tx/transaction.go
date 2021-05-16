@@ -2,6 +2,7 @@ package tx
 
 import (
 	"context"
+	"fmt"
 	"github.com/vkaushik/saga/marshal"
 	"github.com/vkaushik/saga/subtx"
 	"github.com/vkaushik/saga/trace"
@@ -89,7 +90,7 @@ func (tx *Tx) Start() error {
 
 // ExecSubTx executes the sub-transaction that's already defined in saga and identified by the identifier
 func (tx *Tx) ExecSubTx(subTxID string, args ...interface{}) error {
-	_, err := tx.ExecSubTxAndGetResult(subTxID, args)
+	_, err := tx.ExecSubTxAndGetResult(subTxID, args...)
 	return err
 }
 
@@ -140,7 +141,7 @@ func (tx *Tx) ExecSubTxAndGetResult(subTxID string, args ...interface{}) ([]refl
 	}
 
 	// execute subTx
-	tx.log.Info("calling action for SubTxID: %s", subTxID)
+	tx.log.Info(fmt.Sprintf("calling action for SubTxID: %s \n", subTxID))
 	res = subTxDef.GetAction().Call(actualArgs)
 	err = getErrorFrom(res)
 	if err != nil {
