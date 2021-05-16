@@ -16,11 +16,12 @@ test_mocks: ## Generate mocks for tests.
 	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
 	"./build/mocks/generate_mocks.sh"
 
-rebuild_docker_image:
-	docker-compose -f ./build/docker-compose.yml build
-
-build_base_image:
+rebuild_base_image: ## Rebuild base image after any changes to Dockerfile.
 	docker-compose -f ./build/docker-compose.yml build go_saga
+
+get_running_container:
+	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
+	"tail -f /dev/null"
 
 ##---------------------------------------------
 ## Git Hooks
@@ -43,3 +44,10 @@ uninstall_git_hooks: ## Uninstall pre-commit and pre-push git hooks
 	rm ./.git/hooks/pre-push
 	if [ -f ./.git/hooks/old-pre-commit ]; then mv ./.git/hooks/old-pre-commit ./git/hooks/old-pre-commit; fi
 	if [ -f ./.git/hooks/old-pre-push ]; then mv ./.git/hooks/old-pre-push ./git/hooks/old-pre-push; fi
+
+##---------------------------------------------
+## Others
+
+dependency_graph:
+	docker-compose -f ./build/docker-compose.yml run gontainer bash -c \
+	"godepgraph github.com/vkaushik/saga | dot -Tpng -o dependency_graph.png"
