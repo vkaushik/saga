@@ -22,3 +22,7 @@ func (c *LogCache) AppendLog(id string, logData string) error {
 
 	return nil
 }
+
+func (c *LogCache) GetTxLogs(id string) ([]string, error) {
+	return c.logs[id], nil
+}

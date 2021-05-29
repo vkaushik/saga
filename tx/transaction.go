@@ -32,6 +32,7 @@ type Saga interface {
 type Storage interface {
 	TxIDAlreadyExists(string) (bool, error)
 	AppendLog(string, string) error
+	GetTxLogs(id string) ([]string, error)
 }
 
 // ReadyTx is the Ready-Transaction that exposes the executable actions for the Saga Transaction
@@ -184,17 +185,65 @@ func (tx *Tx) End() error {
 	}
 
 	// Cleanup
+	// TODO: free up saga, storage etc.
 
 	return nil
 }
 
 // RollbackWithInfiniteTries tries rolling back the transaction. It'll keep retrying the rollback until it's successful.
 func (tx *Tx) RollbackWithInfiniteTries() {
-
+	for true {
+		if err := tx.rollback(); err == nil {
+			return
+		}
+	}
 }
 
 // Rollback tries rolling back the transaction. If rollback is failing it'll try rolling back only tryCount times.
 func (tx *Tx) Rollback(tryCount int) error {
+	var err error
+	for tryCount > 0 {
+		tx.log.Info("rollback attempt: ", tryCount, "for tx: ", tx.txID)
+		if err = tx.rollback(); err == nil {
+			return nil
+		}
+		tryCount--
+	}
+	return err
+}
+
+// rollback once
+func (tx *Tx) rollback() error {
+	logs, err := tx.storage.GetTxLogs(tx.txID)
+	if err != nil {
+		return errors.Annotate(err, "could not get Tx logs from storage")
+	}
+	logMsg := &log.Log{
+		Type: log.AbortTx,
+		Time: time.Now(),
+	}
+	l, err := marshal.Marshal(logMsg)
+	if err != nil {
+		return errors.Annotate(err, "could not marshal abort Tx log message")
+	}
+
+	err = tx.storage.AppendLog(tx.txID, l)
+	if err != nil {
+		return errors.Annotate(err, "could not log abort Tx log message")
+	}
+
+	for _, logBytes := range logs {
+		var logData log.Log
+		if err := marshal.Unmarshal([]byte(logBytes), &logData); err != nil {
+			return errors.Annotate(err, "could not unmarshal log data during abort")
+		}
+		if logData.Type == log.StartSubTx {
+			if err := tx.CompensateSubTx(logData.SubTxID); err != nil {
+				return errors.Annotatef(err, "could not compensate subTxID: %s", logData.SubTxID)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -210,5 +259,10 @@ func (tx *Tx) SetContext(ctx context.Context) {
 
 // IsTxIDAlreadyInUse checks if TxID is already in use i.e. another Tx was already initiated.
 func (tx *Tx) IsTxIDAlreadyInUse() (bool, error) {
-	return tx.storage.TxIDAlreadyExists(string(tx.txID))
+	return tx.storage.TxIDAlreadyExists(tx.txID)
+}
+
+func (tx *Tx) CompensateSubTx(subTxID string) error {
+
+	return nil
 }

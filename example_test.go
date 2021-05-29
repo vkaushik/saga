@@ -2,6 +2,7 @@ package saga
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/vkaushik/saga/storage/memory"
 	"github.com/vkaushik/saga/trace"
@@ -72,4 +73,9 @@ func credit(c context.Context, amount int, to string) error {
 func creditCompensate(c context.Context, amount int, to string) error {
 	fmt.Printf("reversing crediting amount: %v to account: %v\n", amount, to)
 	return nil
+}
+
+func creditError(c context.Context, amount int, to string) error {
+	fmt.Printf("crediting amount: %v to account: %v\n", amount, to)
+	return errors.New("error on credit")
 }
