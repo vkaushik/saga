@@ -39,7 +39,8 @@ type SubTxDefinitions interface {
 // ParamRegister contains methods to add sub-transaction parameters metadata
 type ParamRegister interface {
 	Add(funcObj interface{}) error
-	GetRegisteredType(t reflect.Type) (typ string, err error)
+	GetRegisteredTypeName(t reflect.Type) (typ string, err error)
+	GetRegisteredType(typ string) (t reflect.Type, err error)
 }
 
 // AddSubTx registers the action and compensate methods for a SubTx that'll be identified with the SubTxID.
@@ -69,7 +70,7 @@ func (s *Saga) MarshallArgs(args []interface{}) ([]log.ArgData, error) {
 	res := make([]log.ArgData, 0, len(args))
 
 	for _, arg := range args {
-		t, err := s.params.GetRegisteredType(reflect.ValueOf(arg).Type())
+		t, err := s.params.GetRegisteredTypeName(reflect.ValueOf(arg).Type())
 		if err != nil {
 			return res, errors.Annotate(err, "could not find argument type registered in saga")
 		}
@@ -88,4 +89,27 @@ func (s *Saga) MarshallArgs(args []interface{}) ([]log.ArgData, error) {
 	}
 
 	return res, nil
+}
+
+func (s *Saga) UnmarshallArgs(argData []log.ArgData) ([]reflect.Value, error) {
+	var actualArgs []reflect.Value
+	for _, arg := range argData {
+		typ, err := s.params.GetRegisteredType(arg.Type)
+		if err != nil {
+			return actualArgs, errors.Annotate(err, "could not find argument registered")
+		}
+		obj := reflect.New(typ).Interface()
+		err = marshal.Unmarshal([]byte(arg.Value), obj)
+		if err != nil {
+			return actualArgs, errors.Annotatef(err, "could not unmarshal type: %s", arg.Type)
+		}
+		objValue := reflect.ValueOf(obj)
+		// if pointer, get its value
+		if objValue.Type().Kind() == reflect.Ptr && objValue.Type() != typ {
+			objValue = objValue.Elem()
+		}
+		actualArgs = append(actualArgs, objValue)
+	}
+
+	return actualArgs, nil
 }

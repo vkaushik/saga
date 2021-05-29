@@ -158,8 +158,8 @@ func (k *Kafka) AppendLog(txID string, data string) error {
 	return nil
 }
 
-// Lookup
-func (k *Kafka) Lookup(txID string) ([]string, error) {
+// GetTxLogs to get Tx logs
+func (k *Kafka) GetTxLogs(txID string) ([]string, error) {
 	partitionList, err := k.consumer.Partitions(txID)
 	if err != nil {
 		return nil, errors.Annotatef(err, "could not get partitions for topic: %v", txID)

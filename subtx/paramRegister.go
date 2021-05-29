@@ -18,7 +18,7 @@ type ParamTypeRegister struct {
 	typeToName map[reflect.Type]string
 }
 
-func (pr *ParamTypeRegister) GetRegisteredType(t reflect.Type) (typ string, err error) {
+func (pr *ParamTypeRegister) GetRegisteredTypeName(t reflect.Type) (typ string, err error) {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
@@ -26,6 +26,13 @@ func (pr *ParamTypeRegister) GetRegisteredType(t reflect.Type) (typ string, err 
 		return p, nil
 	}
 	return "", errors.New("could not find the type in param type register: " + t.String())
+}
+
+func (pr *ParamTypeRegister) GetRegisteredType(typ string) (t reflect.Type, err error) {
+	if p, ok := pr.nameToType[typ]; ok {
+		return p, nil
+	}
+	return nil, errors.New("could not find the type name in param register:" + typ)
 }
 
 func (pr *ParamTypeRegister) Add(obj interface{}) error {

@@ -26,12 +26,14 @@ type Tx struct {
 type Saga interface {
 	GetSubTxDef(subTxID string) (subtx.Definition, error)
 	MarshallArgs(args []interface{}) ([]log.ArgData, error)
+	UnmarshallArgs(argData []log.ArgData) ([]reflect.Value, error)
 }
 
 // Storage is the dependency for Transaction that provides persistence to Saga
 type Storage interface {
 	TxIDAlreadyExists(string) (bool, error)
 	AppendLog(string, string) error
+	GetTxLogs(id string) ([]string, error)
 }
 
 // ReadyTx is the Ready-Transaction that exposes the executable actions for the Saga Transaction
@@ -129,7 +131,7 @@ func (tx *Tx) ExecSubTxAndGetResult(subTxID string, args ...interface{}) ([]refl
 		return res, errors.Annotate(err, "could not marshal log message for start of SubTx")
 	}
 
-	if err := tx.storage.AppendLog(subTxID, l); err != nil {
+	if err := tx.storage.AppendLog(tx.txID, l); err != nil {
 		return res, errors.Annotate(err, "could not append start SubTx log for subTxID: "+subTxID)
 	}
 
@@ -159,7 +161,7 @@ func (tx *Tx) ExecSubTxAndGetResult(subTxID string, args ...interface{}) ([]refl
 		return res, errors.Annotate(err, "could not marshal log message for end of SubTx")
 	}
 
-	err = tx.storage.AppendLog(subTxID, l)
+	err = tx.storage.AppendLog(tx.txID, l)
 	if err != nil {
 		return res, errors.Annotate(err, "could not append end SubTx log for subTxID: "+subTxID)
 	}
@@ -184,17 +186,65 @@ func (tx *Tx) End() error {
 	}
 
 	// Cleanup
+	// TODO: free up saga, storage etc.
 
 	return nil
 }
 
 // RollbackWithInfiniteTries tries rolling back the transaction. It'll keep retrying the rollback until it's successful.
 func (tx *Tx) RollbackWithInfiniteTries() {
-
+	for true {
+		if err := tx.rollback(); err == nil {
+			return
+		}
+	}
 }
 
 // Rollback tries rolling back the transaction. If rollback is failing it'll try rolling back only tryCount times.
 func (tx *Tx) Rollback(tryCount int) error {
+	var err error
+	for tryCount > 0 {
+		tx.log.Info("rollback attempt: ", tryCount, "for tx: ", tx.txID)
+		if err = tx.rollback(); err == nil {
+			return nil
+		}
+		tryCount--
+	}
+	return err
+}
+
+// rollback once
+func (tx *Tx) rollback() error {
+	logs, err := tx.storage.GetTxLogs(tx.txID)
+	if err != nil {
+		return errors.Annotate(err, "could not get Tx logs from storage")
+	}
+	logMsg := &log.Log{
+		Type: log.AbortTx,
+		Time: time.Now(),
+	}
+	l, err := marshal.Marshal(logMsg)
+	if err != nil {
+		return errors.Annotate(err, "could not marshal abort Tx log message")
+	}
+
+	err = tx.storage.AppendLog(tx.txID, l)
+	if err != nil {
+		return errors.Annotate(err, "could not log abort Tx log message")
+	}
+
+	for _, logBytes := range logs {
+		var logData log.Log
+		if err := marshal.Unmarshal([]byte(logBytes), &logData); err != nil {
+			return errors.Annotate(err, "could not unmarshal log data during abort")
+		}
+		if logData.Type == log.StartSubTx {
+			if err := tx.CompensateSubTx(logData); err != nil {
+				return errors.Annotatef(err, "could not compensate subTxID: %s", logData.SubTxID)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -210,5 +260,65 @@ func (tx *Tx) SetContext(ctx context.Context) {
 
 // IsTxIDAlreadyInUse checks if TxID is already in use i.e. another Tx was already initiated.
 func (tx *Tx) IsTxIDAlreadyInUse() (bool, error) {
-	return tx.storage.TxIDAlreadyExists(string(tx.txID))
+	return tx.storage.TxIDAlreadyExists(tx.txID)
+}
+
+func (tx *Tx) CompensateSubTx(logData log.Log) error {
+	// log the starting of subTx compensate
+	logMsg := &log.Log{
+		Type:    log.StartCompensateSubTx,
+		SubTxID: logData.SubTxID,
+		Time:    time.Now(),
+	}
+
+	l, err := marshal.Marshal(logMsg)
+	if err != nil {
+		return errors.Annotate(err, "could not marshal log message for start of compensate SubTx")
+	}
+
+	if err := tx.storage.AppendLog(tx.txID, l); err != nil {
+		return errors.Annotate(err, "could not append start compensate SubTx log for subTxID: "+logData.SubTxID)
+	}
+
+	// validate SubTxID and get the definition from saga
+	subTxDef, err := tx.saga.GetSubTxDef(logData.SubTxID)
+	if err != nil {
+		return errors.Annotatef(err, "could not get SubTx definition for subTxID: %s", logData.SubTxID)
+	}
+
+	// prepare actual arguments to execute SubTx compensate
+	args, err := tx.saga.UnmarshallArgs(logData.Args)
+	if err != nil {
+		return errors.Annotate(err, "could not unmarshall compensate arguments")
+	}
+
+	actualArgs := make([]reflect.Value, 0, len(args)+1)
+	actualArgs = append(actualArgs, reflect.ValueOf(tx.ctx))
+	actualArgs = append(actualArgs, args...)
+
+	// execute subTx compensate
+	tx.log.Info(fmt.Sprintf("calling compensate for SubTxID: %s \n", logData.SubTxID))
+	res := subTxDef.GetCompensate().Call(actualArgs)
+	err = getErrorFrom(res)
+	if err != nil {
+		return errors.Annotatef(err, "subTx action execution returned error for subTxID: %s", logData.SubTxID)
+	}
+
+	// log the end of subTx action
+	logMsg = &log.Log{
+		Type:    log.EndSubTx,
+		SubTxID: logData.SubTxID,
+		Time:    time.Now(),
+	}
+	l, err = marshal.Marshal(logMsg)
+	if err != nil {
+		return errors.Annotate(err, "could not marshal log message for end of SubTx")
+	}
+
+	err = tx.storage.AppendLog(tx.txID, l)
+	if err != nil {
+		return errors.Annotate(err, "could not append end SubTx log for subTxID: "+logData.SubTxID)
+	}
+
+	return nil
 }

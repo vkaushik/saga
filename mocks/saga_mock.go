@@ -101,16 +101,31 @@ func (mr *MockParamRegisterMockRecorder) Add(funcObj interface{}) *gomock.Call {
 }
 
 // GetRegisteredType mocks base method.
-func (m *MockParamRegister) GetRegisteredType(t reflect.Type) (string, error) {
+func (m *MockParamRegister) GetRegisteredType(typ string) (reflect.Type, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRegisteredType", t)
-	ret0, _ := ret[0].(string)
+	ret := m.ctrl.Call(m, "GetRegisteredType", typ)
+	ret0, _ := ret[0].(reflect.Type)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRegisteredType indicates an expected call of GetRegisteredType.
-func (mr *MockParamRegisterMockRecorder) GetRegisteredType(t interface{}) *gomock.Call {
+func (mr *MockParamRegisterMockRecorder) GetRegisteredType(typ interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRegisteredType", reflect.TypeOf((*MockParamRegister)(nil).GetRegisteredType), t)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRegisteredType", reflect.TypeOf((*MockParamRegister)(nil).GetRegisteredType), typ)
+}
+
+// GetRegisteredTypeName mocks base method.
+func (m *MockParamRegister) GetRegisteredTypeName(t reflect.Type) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRegisteredTypeName", t)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRegisteredTypeName indicates an expected call of GetRegisteredTypeName.
+func (mr *MockParamRegisterMockRecorder) GetRegisteredTypeName(t interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRegisteredTypeName", reflect.TypeOf((*MockParamRegister)(nil).GetRegisteredTypeName), t)
 }
